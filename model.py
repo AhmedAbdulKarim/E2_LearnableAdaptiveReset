@@ -57,7 +57,8 @@ class AdaptiveMultiplicativeResetLIF(nn.Module):
             # C. The Continuous Multiplicative Reset
             # If spike == 0: self.v remains unchanged
             # If spike == 1: self.v becomes (self.v * safe_reset_weight)
-            self.v = self.v * (1.0 - spike) + (self.v * safe_reset_weight) * spike
+            spike_d = spike.detach()
+            self.v = self.v * (1.0 - spike_d) + (self.v * safe_reset_weight) * spike_d
 
         return torch.stack(out, dim=0)
 
@@ -522,3 +523,7 @@ if __name__ == '__main__':
 
 # 10. The `no_weight_decay` method was updated to include all parameters containing 'w_res' in their names, which are the learnable reset weights of the AdaptiveMultiplicativeResetLIF neurons. This ensures that these parameters are not subjected to weight decay during optimization, allowing them to learn effectively without being penalized by regularization.
 # This is also because If AdamW blindly shrinks w_res by 6% every single step, it will forcibly pull the value down to 0.0. This would prevent the model from learning any meaningful reset behavior, as the reset multiplier would always be fixed at 0.5 (the value of sigmoid(0.0)). By excluding w_res from weight decay, we allow it to freely adjust during training, enabling the model to discover an optimal reset strategy that can enhance performance and stability.
+
+# detach() was used in the spike variable to ensure that the reset mechanism does not interfere with the gradient flow during backpropagation, allowing the model to learn effectively while still benefiting from the novel continuous multiplicative reset behavior.
+# using detach in the spike variable allows the reset mechanism to operate independently of the gradient flow, which is crucial for the model to learn effectively. This way, the model can adjust its parameters based on the loss function without being hindered by the reset behavior, while still benefiting from the improved performance and stability provided by the continuous multiplicative reset mechanism.
+# this also effects the memory usage and computational efficiency of the model, as it prevents unnecessary gradient calculations for the reset mechanism, allowing the model to focus its learning capacity on optimizing the main parameters that contribute to performance.
