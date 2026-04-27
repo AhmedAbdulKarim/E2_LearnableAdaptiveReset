@@ -399,10 +399,19 @@ class vit_snn(nn.Module):
         self.head = nn.Linear(embed_dims, num_classes) if num_classes > 0 else nn.Identity()
         self.apply(self._init_weights)
 
+    #@torch.jit.ignore
+    #def no_weight_decay(self):
+    #    return {'pose_embed'}
+
     @torch.jit.ignore
     def no_weight_decay(self):
-        return {'pose_embed'}
+        nwd = {'pose_embed'}
+        for name, _ in self.named_parameters():
+            if 'w_res' in name:  
+                nwd.add(name)
+        return nwd
 
+    
     @torch.jit.ignore
     def _get_pos_embed(self, pos_embed, patch_embed, H, W):
         return None
@@ -511,3 +520,5 @@ if __name__ == '__main__':
 # 9. AdaptiveMultiplicativeResetLIF(tau=2.0, v_threshold=1.0) was used instead of MultiStepLIFNode in all places to implement the novel continuous multiplicative reset mechanism. This allows the model to learn an optimal reset behavior during training, which can lead to improved performance and stability compared to the standard hard reset mechanism of LIF neurons.
 # Its function was also explained in detail in the comments within the code to highlight the novelty and importance of this new neuron model in the context of spiking neural networks.
 
+# 10. The `no_weight_decay` method was updated to include all parameters containing 'w_res' in their names, which are the learnable reset weights of the AdaptiveMultiplicativeResetLIF neurons. This ensures that these parameters are not subjected to weight decay during optimization, allowing them to learn effectively without being penalized by regularization.
+# This is also because If AdamW blindly shrinks w_res by 6% every single step, it will forcibly pull the value down to 0.0. This would prevent the model from learning any meaningful reset behavior, as the reset multiplier would always be fixed at 0.5 (the value of sigmoid(0.0)). By excluding w_res from weight decay, we allow it to freely adjust during training, enabling the model to discover an optimal reset strategy that can enhance performance and stability.
