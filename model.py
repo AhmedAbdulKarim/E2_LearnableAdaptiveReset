@@ -26,9 +26,9 @@ class AdaptiveMultiplicativeResetLIF(nn.Module):
         # Initialized at 0.0. After sigmoid, this starts the multiplier at 0.5
         self.w_res = nn.Parameter(torch.tensor([init_w_res], dtype=torch.float32))
         
-        # Using SpikingJelly's FastSigmoid for the spike generation
-        self.surrogate_function = surrogate.FastSigmoid()
-
+        # Using SpikingJelly's Sigmoid for the spike generation
+        #self.surrogate_function = surrogate.FastSigmoid()
+        self.surrogate_function = surrogate.Sigmoid(alpha=5.0)
     def reset(self):
         # SpikingJelly calls this at the end of every sequence/batch
         self.v = 0.0
